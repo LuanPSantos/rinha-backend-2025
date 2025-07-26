@@ -6,11 +6,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: 0.15
-          memory: 420MB
+          cpus: 1.0
+          memory: 512MB
     networks:
       - backend
       - payment-processor
+    environment:
+      - WEB_CLIENT_POOL_SIZE=512
   redis:
     image: redis:7.2-alpine
     container_name: redis

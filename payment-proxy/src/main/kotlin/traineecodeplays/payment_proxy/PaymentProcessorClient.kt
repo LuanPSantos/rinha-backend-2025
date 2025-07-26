@@ -14,12 +14,12 @@ import java.time.Duration
 
 @Component
 class PaymentProcessorClient(
-    builder: WebClient.Builder,
     @Value("\${payment-processor.default.url}") defaultUrl: String,
     @Value("\${payment-processor.fallback.url}") fallback: String,
+    @Value("\${web-client.pool-size}") poolSize: Int,
 ) {
-    private val default = webClient(defaultUrl)
-    private val fallback = webClient(fallback)
+    private val default = webClient(defaultUrl, poolSize)
+    private val fallback = webClient(fallback, poolSize)
 
     suspend fun pay(paymentRequest: PaymentRequest): Client {
         return default
@@ -40,15 +40,15 @@ class PaymentProcessorClient(
             .toBodilessEntity()
     }
 
-    private final fun webClient(baseUrl: String): WebClient {
+    private final fun webClient(baseUrl: String, poolSize: Int): WebClient {
         val provider = ConnectionProvider.builder("custom")
-            .maxConnections(1000)
-            .pendingAcquireTimeout(Duration.ofSeconds(30))
+            .maxConnections(poolSize)
+            .pendingAcquireTimeout(Duration.ofSeconds(1))
             .build()
 
         val httpClient: HttpClient = HttpClient.create(provider)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-            .responseTimeout(Duration.ofSeconds(5))
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+            .responseTimeout(Duration.ofSeconds(1))
         return WebClient.builder()
             .baseUrl(baseUrl)
             .clientConnector(ReactorClientHttpConnector(httpClient))
