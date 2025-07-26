@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class PaymentController(
+class PayController(
     private val useCase: PayUseCase
 ) {
 

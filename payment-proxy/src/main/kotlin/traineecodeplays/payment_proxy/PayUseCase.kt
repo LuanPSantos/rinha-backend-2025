@@ -13,28 +13,8 @@ class PayUseCase(
         val executedBy = client.pay(paymentRequest)
 
         when(executedBy) {
-            DEFAULT -> updateDefault(paymentRequest)
-            FALLBACK -> updateFallback(paymentRequest)
+            DEFAULT -> repository.saveDefault(paymentRequest)
+            FALLBACK -> repository.saveFallback(paymentRequest)
         }
-    }
-
-    private suspend fun updateFallback(paymentRequest: PaymentRequest) {
-        val transaction = repository.get()
-
-        transaction?.fallback?.totalAmount?.plus(paymentRequest.amount)?.let {
-            repository.save(transaction)
-        }
-
-        println(transaction)
-    }
-
-    private suspend fun updateDefault(paymentRequest: PaymentRequest) {
-        val transaction = repository.get()
-
-        transaction?.default?.totalAmount?.plus(paymentRequest.amount)?.let {
-            repository.save(transaction)
-        }
-
-        println(transaction)
     }
 }

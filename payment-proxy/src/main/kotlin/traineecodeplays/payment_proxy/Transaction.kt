@@ -3,11 +3,15 @@ package traineecodeplays.payment_proxy
 import java.math.BigDecimal
 
 data class Transaction(
-    val default: Data,
-    val fallback: Data
+    val default: Data = Data(),
+    val fallback: Data  = Data()
 ) {
     data class Data(
-        val totalRequests: Long,
-        val totalAmount: BigDecimal
-    )
+        val totalRequests: Long = 0,
+        val totalAmount: BigDecimal = BigDecimal.ZERO
+    ) {
+        fun plus(amount: BigDecimal): Data {
+            return this.copy(totalRequests = this.totalRequests + 1, totalAmount = this.totalAmount.plus(amount))
+        }
+    }
 }
