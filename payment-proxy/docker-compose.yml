@@ -1,18 +1,54 @@
 services:
-  payment-proxy-1:
-    image: payment-proxy:0.0.1-SNAPSHOT
+  nginx:
+    image: nginx:alpine
     ports:
       - 9999:9999
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - backend
+      - payment-processor
     deploy:
       resources:
         limits:
-          cpus: 1.0
-          memory: 512MB
+          cpus: 0.25
+          memory: 24MB
+    depends_on:
+      - payment-proxy-1
+      - payment-proxy-2
+
+  payment-proxy-1:
+    image: payment-proxy:0.0.1-SNAPSHOT
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: 0.5
+#          memory: 128MB
     networks:
       - backend
       - payment-processor
     environment:
-      - WEB_CLIENT_POOL_SIZE=512
+      - WEB_CLIENT_POOL_SIZE=1024
+      - DEFAULT_URL=http://payment-processor-default:8080
+      - FALLBACK_URL=http://payment-processor-fallback:8080
+      - REDIS_HOST=redis
+
+  payment-proxy-2:
+    image: payment-proxy:0.0.1-SNAPSHOT
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: 0.5
+#          memory: 128MB
+    networks:
+      - backend
+      - payment-processor
+    environment:
+      - WEB_CLIENT_POOL_SIZE=1024
+      - DEFAULT_URL=http://payment-processor-default:8080
+      - FALLBACK_URL=http://payment-processor-fallback:8080
+      - REDIS_HOST=redis
+
   redis:
     image: redis:7.2-alpine
     container_name: redis
@@ -29,8 +65,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: "275MB"
+          cpus: 0.25
+          memory: 70MB
 
 networks:
   backend:

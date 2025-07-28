@@ -1,4 +1,4 @@
-package traineecodeplays.payment_proxy
+package traineecodeplays.payment_proxy.summary
 
 import org.springframework.data.domain.Range
 import org.springframework.data.domain.Range.Bound
@@ -6,29 +6,30 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.core.addAndAwait
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
+import java.math.BigDecimal
 import java.time.Instant
 
 @Component
 class TransactionRepository(
-    private val redis: ReactiveRedisTemplate<String, PaymentRequest>
+    private val redis: ReactiveRedisTemplate<String, BigDecimal>
 ) {
-    suspend fun saveDefault(paymentRequest: PaymentRequest) {
-        redis.opsForZSet().addAndAwait(DEFAULT, paymentRequest, Instant.now().toEpochMilli().toDouble())
+    suspend fun saveDefault(amount: BigDecimal) {
+        redis.opsForZSet().addAndAwait(DEFAULT, amount, Instant.now().toEpochMilli().toDouble())
     }
 
-    suspend fun saveFallback(paymentRequest: PaymentRequest) {
-        redis.opsForZSet().addAndAwait(FALLBACK, paymentRequest, Instant.now().toEpochMilli().toDouble())
+    suspend fun saveFallback(amount: BigDecimal) {
+        redis.opsForZSet().addAndAwait(FALLBACK, amount, Instant.now().toEpochMilli().toDouble())
     }
 
-    suspend fun getDefault(from: Instant?, to: Instant?): Flux<PaymentRequest> {
+    suspend fun getDefault(from: Instant?, to: Instant?): Flux<BigDecimal> {
         return get(DEFAULT, from, to)
     }
 
-    suspend fun getFallback(from: Instant?, to: Instant?) : Flux<PaymentRequest> {
+    suspend fun getFallback(from: Instant?, to: Instant?) : Flux<BigDecimal> {
         return get(FALLBACK, from, to)
     }
 
-    suspend fun get(client: String, from: Instant?, to: Instant?) : Flux<PaymentRequest> {
+    suspend fun get(client: String, from: Instant?, to: Instant?) : Flux<BigDecimal> {
         if(from != null && to != null) {
             return redis.opsForZSet().rangeByScore(client, Range.open(from.toEpochMilli().toDouble(), to.toEpochMilli().toDouble()))
         }

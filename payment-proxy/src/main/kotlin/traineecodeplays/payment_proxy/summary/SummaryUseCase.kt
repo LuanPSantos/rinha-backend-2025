@@ -1,4 +1,4 @@
-package traineecodeplays.payment_proxy
+package traineecodeplays.payment_proxy.summary
 
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.stereotype.Service
@@ -11,8 +11,8 @@ class SummaryUseCase(
 
     suspend fun execute(from: Instant?, to: Instant?): Transaction {
 
-        val default =  repository.getDefault(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr.amount) }.awaitSingle()
-        val fallback =  repository.getFallback(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr.amount) }.awaitSingle()
+        val default =  repository.getDefault(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr) }.awaitSingle()
+        val fallback =  repository.getFallback(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr) }.awaitSingle()
 
         return Transaction(default, fallback)
     }

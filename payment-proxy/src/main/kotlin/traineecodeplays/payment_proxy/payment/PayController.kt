@@ -1,4 +1,4 @@
-package traineecodeplays.payment_proxy
+package traineecodeplays.payment_proxy.payment
 
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

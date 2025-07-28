@@ -1,10 +1,10 @@
-package traineecodeplays.payment_proxy
+package traineecodeplays.payment_proxy.summary
 
 import java.math.BigDecimal
 
 data class Transaction(
     val default: Data = Data(),
-    val fallback: Data  = Data()
+    val fallback: Data = Data()
 ) {
     data class Data(
         val totalRequests: Long = 0,

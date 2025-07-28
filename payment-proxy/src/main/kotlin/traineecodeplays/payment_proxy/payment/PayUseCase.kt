@@ -1,7 +1,8 @@
-package traineecodeplays.payment_proxy
+package traineecodeplays.payment_proxy.payment
 
 import org.springframework.stereotype.Service
-import traineecodeplays.payment_proxy.PaymentProcessorClient.Client.*
+import traineecodeplays.payment_proxy.summary.TransactionRepository
+import traineecodeplays.payment_proxy.payment.PaymentProcessorClient.Client.*
 
 @Service
 class PayUseCase(
@@ -13,8 +14,8 @@ class PayUseCase(
         val executedBy = client.pay(paymentRequest)
 
         when(executedBy) {
-            DEFAULT -> repository.saveDefault(paymentRequest)
-            FALLBACK -> repository.saveFallback(paymentRequest)
+            DEFAULT -> repository.saveDefault(paymentRequest.amount)
+            FALLBACK -> repository.saveFallback(paymentRequest.amount)
         }
     }
 }
