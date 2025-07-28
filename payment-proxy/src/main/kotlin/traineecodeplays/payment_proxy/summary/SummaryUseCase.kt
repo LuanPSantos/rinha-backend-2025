@@ -11,8 +11,11 @@ class SummaryUseCase(
 
     suspend fun execute(from: Instant?, to: Instant?): Transaction {
 
-        val default =  repository.getDefault(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr) }.awaitSingle()
-        val fallback =  repository.getFallback(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr) }.awaitSingle()
+        val default =  repository.getDefault(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr.amount) }.awaitSingle()
+        val fallback =  repository.getFallback(from, to).reduce(Transaction.Data()) { acc, curr -> acc.plus(curr.amount) }.awaitSingle()
+
+        println("default is $default")
+        println("fallback is $fallback")
 
         return Transaction(default, fallback)
     }

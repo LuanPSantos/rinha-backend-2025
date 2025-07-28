@@ -1,33 +1,25 @@
 package traineecodeplays.payment_proxy.payment
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.netty.channel.ChannelOption
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatusCode
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBody
-import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
-import java.math.BigDecimal
 import java.time.Duration
-import java.time.Instant
-import java.time.ZonedDateTime
-
 
 @Component
 class PaymentProcessorClient(
     @Value("\${payment-processor.default.url}") defaultUrl: String,
     @Value("\${payment-processor.fallback.url}") fallback: String,
     @Value("\${web-client.pool-size}") poolSize: Int,
-    val mapper: ObjectMapper
+    @Value("\${web-client.pending-acquire-max-count}") pendingAcquireMaxCount: Int
 ) {
-    private val default = webClient(defaultUrl, poolSize)
-    private val fallback = webClient(fallback, poolSize)
+    private val default = webClient(defaultUrl, poolSize, pendingAcquireMaxCount)
+    private val fallback = webClient(fallback, poolSize, pendingAcquireMaxCount)
 
     suspend fun pay(paymentRequest: PaymentRequest): Client {
         return default
@@ -35,6 +27,7 @@ class PaymentProcessorClient(
             .uri("/payments")
             .bodyValue(paymentRequest)
             .exchangeToMono {
+
                 if(it.statusCode().isError) {
                     callFallback(paymentRequest).map { Client.FALLBACK }
                 }else{
@@ -51,20 +44,24 @@ class PaymentProcessorClient(
             .bodyValue(paymentRequest)
             .retrieve()
             .onStatus({ it.isError }) {
+                println("fallback status is ${it.statusCode().value()}")
+
                 Mono.error(Exception("Failed to process request"))
             }
             .toBodilessEntity()
     }
 
-    private final fun webClient(baseUrl: String, poolSize: Int): WebClient {
+    private final fun webClient(baseUrl: String, poolSize: Int, pendingAcquireMaxCount: Int): WebClient {
         val provider = ConnectionProvider.builder("custom")
             .maxConnections(poolSize)
-            .pendingAcquireTimeout(Duration.ofSeconds(1))
+            .pendingAcquireTimeout(Duration.ofSeconds(2))
+            .pendingAcquireMaxCount(pendingAcquireMaxCount)
             .build()
 
         val httpClient: HttpClient = HttpClient.create(provider)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
-            .responseTimeout(Duration.ofSeconds(1))
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
+            .responseTimeout(Duration.ofSeconds(2))
+
         return WebClient.builder()
             .baseUrl(baseUrl)
             .clientConnector(ReactorClientHttpConnector(httpClient))

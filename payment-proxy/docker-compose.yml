@@ -19,35 +19,37 @@ services:
 
   payment-proxy-1:
     image: payment-proxy:0.0.1-SNAPSHOT
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: 0.5
-#          memory: 128MB
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 128MB
     networks:
       - backend
       - payment-processor
     environment:
-      - WEB_CLIENT_POOL_SIZE=1024
+      - WEB_CLIENT_POOL_SIZE=16
       - DEFAULT_URL=http://payment-processor-default:8080
       - FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_HOST=redis
+      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=2048
 
   payment-proxy-2:
     image: payment-proxy:0.0.1-SNAPSHOT
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: 0.5
-#          memory: 128MB
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 128MB
     networks:
       - backend
       - payment-processor
     environment:
-      - WEB_CLIENT_POOL_SIZE=1024
+      - WEB_CLIENT_POOL_SIZE=16
       - DEFAULT_URL=http://payment-processor-default:8080
       - FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_HOST=redis
+      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=2048
 
   redis:
     image: redis:7.2-alpine
