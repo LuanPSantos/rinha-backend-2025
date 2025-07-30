@@ -1,14 +1,17 @@
-package traineecodeplays.payment_proxy.payment
+package traineecodeplays.payment_proxy.payment.client
 
 import io.netty.channel.ChannelOption
+import io.netty.handler.timeout.ReadTimeoutException
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientRequestException
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
+import traineecodeplays.payment_proxy.payment.model.PaymentRequest
 import java.time.Duration
 
 @Component
@@ -16,51 +19,58 @@ class PaymentProcessorClient(
     @Value("\${payment-processor.default.url}") defaultUrl: String,
     @Value("\${payment-processor.fallback.url}") fallback: String,
     @Value("\${web-client.pool-size}") poolSize: Int,
-    @Value("\${web-client.pending-acquire-max-count}") pendingAcquireMaxCount: Int
+    @Value("\${web-client.pending-acquire-max-count}") pendingAcquireMaxCount: Int,
+    @Value("\${web-client.timeout}") timeout: Long
 ) {
-    private val default = webClient(defaultUrl, poolSize, pendingAcquireMaxCount)
-    private val fallback = webClient(fallback, poolSize, pendingAcquireMaxCount)
+    private val default = webClient(defaultUrl, poolSize, pendingAcquireMaxCount, timeout)
+    private val fallback = webClient(fallback, poolSize, pendingAcquireMaxCount, timeout)
 
-    suspend fun pay(paymentRequest: PaymentRequest): Client {
+    suspend fun processPayment(paymentRequest: PaymentRequest): Client {
         return default
             .post()
             .uri("/payments")
             .bodyValue(paymentRequest)
             .exchangeToMono {
-
                 if(it.statusCode().isError) {
-                    callFallback(paymentRequest).map { Client.FALLBACK }
+                    callFallback(paymentRequest)
                 }else{
                     Mono.just(Client.DEFAULT)
                 }
-
+            }.onErrorResume(ReadTimeoutException::class.java) {
+                Mono.just(Client.NONE)
+            }.onErrorResume(WebClientRequestException::class.java) {
+                Mono.just(Client.NONE)
             }.awaitSingle()
     }
 
-    fun callFallback(paymentRequest: PaymentRequest): Mono<*> {
+    fun callFallback(paymentRequest: PaymentRequest): Mono<Client> {
         return fallback
             .post()
             .uri("/payments")
             .bodyValue(paymentRequest)
-            .retrieve()
-            .onStatus({ it.isError }) {
-                println("fallback status is ${it.statusCode().value()}")
-
-                Mono.error(Exception("Failed to process request"))
+            .exchangeToMono {
+                if(it.statusCode().isError) {
+                    Mono.just(Client.NONE)
+                }else{
+                    Mono.just(Client.FALLBACK)
+                }
+            }.onErrorResume(ReadTimeoutException::class.java) {
+                Mono.just(Client.NONE)
+            }.onErrorResume(WebClientRequestException::class.java) {
+                Mono.just(Client.NONE)
             }
-            .toBodilessEntity()
     }
 
-    private final fun webClient(baseUrl: String, poolSize: Int, pendingAcquireMaxCount: Int): WebClient {
+    private final fun webClient(baseUrl: String, poolSize: Int, pendingAcquireMaxCount: Int, timeout: Long): WebClient {
         val provider = ConnectionProvider.builder("custom")
             .maxConnections(poolSize)
-            .pendingAcquireTimeout(Duration.ofSeconds(2))
+            .pendingAcquireTimeout(Duration.ofMillis(2000))
             .pendingAcquireMaxCount(pendingAcquireMaxCount)
             .build()
 
         val httpClient: HttpClient = HttpClient.create(provider)
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
-            .responseTimeout(Duration.ofSeconds(2))
+            .responseTimeout(Duration.ofMillis(timeout))
 
         return WebClient.builder()
             .baseUrl(baseUrl)
@@ -69,6 +79,6 @@ class PaymentProcessorClient(
     }
 
     enum class Client {
-        DEFAULT, FALLBACK
+        DEFAULT, FALLBACK, NONE
     }
 }
