@@ -20,7 +20,7 @@ class ProcessPaymentUseCase(
         when (executedBy) {
             DEFAULT -> repository.saveDefault(payment)
             FALLBACK -> repository.saveFallback(payment)
-            else -> producer.saveRetry(payment)
+            else -> repository.saveNone(payment)
         }
     }
 }

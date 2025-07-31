@@ -4,7 +4,8 @@ import java.math.BigDecimal
 
 data class Summary(
     val default: Data = Data(),
-    val fallback: Data = Data()
+    val fallback: Data = Data(),
+    val none: Data = Data()
 ) {
     data class Data(
         val totalRequests: Long = 0,

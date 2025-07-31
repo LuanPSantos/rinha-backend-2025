@@ -27,14 +27,18 @@ services:
       - backend
       - payment-processor
     environment:
-      - WEB_CLIENT_POOL_SIZE=32
       - DEFAULT_URL=http://payment-processor-default:8080
       - FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_HOST=redis
-      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=2048
-      - WEB_CLIENT_TIMEOUTS=250
+      - WEB_CLIENT_POOL_SIZE=32
+      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=512
+      - WEB_CLIENT_TIMEOUTS=-1
+      - REDIS_POOL_MAX_ACTIVE=4
+      - REDIS_POOL_MAX_IDLE=4
+      - REDIS_POOL_MIN_IDLE=2
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   payment-proxy-2:
     image: payment-proxy:0.0.1-SNAPSHOT
@@ -47,14 +51,18 @@ services:
       - backend
       - payment-processor
     environment:
-      - WEB_CLIENT_POOL_SIZE=32
       - DEFAULT_URL=http://payment-processor-default:8080
       - FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_HOST=redis
-      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=2048
-      - WEB_CLIENT_TIMEOUTS=250
+      - WEB_CLIENT_POOL_SIZE=32
+      - WEB_CLIENT_PENDING_ACQUIRE_MAX_COUNT=512
+      - WEB_CLIENT_TIMEOUTS=-1
+      - REDIS_POOL_MAX_ACTIVE=4
+      - REDIS_POOL_MAX_IDLE=4
+      - REDIS_POOL_MIN_IDLE=2
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7.2-alpine
@@ -68,9 +76,10 @@ services:
       - backend
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 1s
+      timeout: 1s
+      retries: 3
+      start_period: 5s
     deploy:
       resources:
         limits:

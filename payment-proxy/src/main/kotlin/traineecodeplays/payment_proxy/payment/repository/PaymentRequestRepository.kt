@@ -17,6 +17,10 @@ class PaymentRequestRepository(
         redis.opsForZSet().addAndAwait(DEFAULT, data, data.requestedAt.toEpochMilli().toDouble())
     }
 
+    suspend fun saveNone(data: PaymentRequest) {
+        redis.opsForZSet().addAndAwait(NONE, data, data.requestedAt.toEpochMilli().toDouble())
+    }
+
     suspend fun saveFallback(data: PaymentRequest) {
         redis.opsForZSet().addAndAwait(FALLBACK, data, data.requestedAt.toEpochMilli().toDouble())
     }
@@ -27,6 +31,10 @@ class PaymentRequestRepository(
 
     fun getFallback(from: Instant?, to: Instant?) : Flux<PaymentRequest> {
         return get(FALLBACK, from, to)
+    }
+
+    fun getNone(from: Instant?, to: Instant?) : Flux<PaymentRequest> {
+        return get(NONE, from, to)
     }
 
     fun get(client: String, from: Instant?, to: Instant?) : Flux<PaymentRequest> {
@@ -44,5 +52,6 @@ class PaymentRequestRepository(
     companion object {
         const val DEFAULT = "default"
         const val FALLBACK = "fallback"
+        const val NONE = "none"
     }
 }
