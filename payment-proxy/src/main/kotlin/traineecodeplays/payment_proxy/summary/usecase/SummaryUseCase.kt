@@ -25,12 +25,6 @@ class SummaryUseCase(
                 acc.plus(curr.amount)
             }.awaitSingle()
 
-        val none = repository
-            .getNone(from, to)
-            .reduce(Summary.Data()) { acc, curr ->
-                acc.plus(curr.amount)
-            }.awaitSingle()
-
-        return Summary(default, fallback, none)
+        return Summary(default, fallback)
     }
 }

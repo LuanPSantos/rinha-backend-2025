@@ -13,8 +13,5 @@ done
 redis-cli XGROUP CREATE pending payment-group '$' MKSTREAM || \
   echo "Group already exists, continuing…"
 
-redis-cli XGROUP CREATE retry retry-group '$' MKSTREAM || \
-  echo "Group already exists, continuing…"
-
 # 4) bring Redis back to foreground (so container lives on redis-server PID 1)
 wait

@@ -26,16 +26,7 @@ class PaymentRequestProducer(
         redis.opsForStream<String, String>().add(record).awaitSingle()
     }
 
-    suspend fun saveRetry(data: PaymentRequest) {
-        val record = StreamRecords.newRecord()
-            .`in`(RETRY)
-            .ofObject(objectMapper.writeValueAsString(data))
-
-        redis.opsForStream<String, String>().add(record).awaitSingle()
-    }
-
     companion object {
         const val PENDING = "pending"
-        const val RETRY = "retry"
     }
 }

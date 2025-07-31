@@ -36,8 +36,6 @@ class PaymentProcessorClient(
                 }else{
                     Mono.just(Client.DEFAULT)
                 }
-            }.onErrorResume(ReadTimeoutException::class.java) {
-                Mono.just(Client.DEFAULT)
             }.onErrorResume(WebClientRequestException::class.java) {
                 Mono.just(Client.NONE)
             }.awaitSingle()
@@ -54,8 +52,6 @@ class PaymentProcessorClient(
                 }else{
                     Mono.just(Client.FALLBACK)
                 }
-            }.onErrorResume(ReadTimeoutException::class.java) {
-                Mono.just(Client.FALLBACK)
             }.onErrorResume(WebClientRequestException::class.java) {
                 Mono.just(Client.NONE)
             }
@@ -64,13 +60,13 @@ class PaymentProcessorClient(
     private final fun webClient(baseUrl: String, poolSize: Int, pendingAcquireMaxCount: Int, timeout: Long): WebClient {
         val provider = ConnectionProvider.builder("custom")
             .maxConnections(poolSize)
-            .pendingAcquireTimeout(Duration.ofMillis(200))
+            .pendingAcquireTimeout(Duration.ofMillis(100))
             .pendingAcquireMaxCount(pendingAcquireMaxCount)
             .fifo()
             .build()
 
         val httpClient: HttpClient = HttpClient.create(provider)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 200)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 100)
             .responseTimeout(Duration.ofMillis(timeout))
 
         return WebClient.builder()
