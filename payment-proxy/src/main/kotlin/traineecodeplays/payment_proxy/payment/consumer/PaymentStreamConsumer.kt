@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.reactor.mono
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.connection.stream.Consumer
 import org.springframework.data.redis.connection.stream.MapRecord
 import org.springframework.data.redis.connection.stream.ReadOffset
@@ -11,15 +12,20 @@ import org.springframework.data.redis.connection.stream.StreamOffset
 import org.springframework.data.redis.stream.StreamReceiver
 import org.springframework.stereotype.Service
 import reactor.core.Disposable
+import reactor.core.scheduler.Schedulers
+import reactor.core.scheduler.Schedulers.fromExecutor
 import traineecodeplays.payment_proxy.payment.model.PaymentRequest
 import traineecodeplays.payment_proxy.payment.producer.PaymentRequestProducer.Companion.PENDING
 import traineecodeplays.payment_proxy.payment.usecase.ProcessPaymentUseCase
 import java.util.UUID.*
+import java.util.concurrent.Executors
+import java.util.concurrent.Executors.newFixedThreadPool
 
 @Service
 class PaymentStreamConsumer(
     private val receiver: StreamReceiver<String, MapRecord<String, String, String>>,
     private val objectMapper: ObjectMapper,
+    @Value("\${consumer.thread-pool}") val pool: Int,
     private val useCase: ProcessPaymentUseCase
 ) {
     private val group = "payment-group"
@@ -35,12 +41,12 @@ class PaymentStreamConsumer(
 
             val payment = objectMapper.readValue(json, PaymentRequest::class.java)
             processPayment(payment)
-        }.subscribe()
+        }.parallel(pool).subscribe()
     }
 
     @PreDestroy
     fun stop() {
-        if(!subscription.isDisposed) subscription.dispose()
+        if (!subscription.isDisposed) subscription.dispose()
     }
 
     private fun processPayment(payment: PaymentRequest) = mono {

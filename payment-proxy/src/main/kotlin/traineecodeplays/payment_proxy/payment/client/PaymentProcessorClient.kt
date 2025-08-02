@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientRequestException
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
 import traineecodeplays.payment_proxy.payment.model.PaymentRequest
@@ -60,13 +62,11 @@ class PaymentProcessorClient(
     private final fun webClient(baseUrl: String, poolSize: Int, pendingAcquireMaxCount: Int, timeout: Long): WebClient {
         val provider = ConnectionProvider.builder("custom")
             .maxConnections(poolSize)
-            .pendingAcquireTimeout(Duration.ofMillis(100))
+            .pendingAcquireTimeout(Duration.ofSeconds(30))
             .pendingAcquireMaxCount(pendingAcquireMaxCount)
-            .fifo()
             .build()
 
         val httpClient: HttpClient = HttpClient.create(provider)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 100)
             .responseTimeout(Duration.ofMillis(timeout))
 
         return WebClient.builder()

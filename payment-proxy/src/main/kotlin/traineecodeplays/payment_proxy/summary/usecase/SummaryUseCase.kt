@@ -1,5 +1,6 @@
 package traineecodeplays.payment_proxy.summary.usecase
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.stereotype.Service
 import traineecodeplays.payment_proxy.payment.repository.PaymentRequestRepository
@@ -12,15 +13,14 @@ class SummaryUseCase(
 ) {
 
     suspend fun execute(from: Instant?, to: Instant?): Summary {
-
-        val default = repository
-            .getDefault(from, to)
+        val fallback = repository
+            .getFallback(from, to)
             .reduce(Summary.Data()) { acc, curr ->
                 acc.plus(curr.amount)
             }.awaitSingle()
 
-        val fallback = repository
-            .getFallback(from, to)
+        val default = repository
+            .getDefault(from, to)
             .reduce(Summary.Data()) { acc, curr ->
                 acc.plus(curr.amount)
             }.awaitSingle()
